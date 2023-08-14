@@ -1,0 +1,108 @@
+﻿@page
+@model DID2024.Pages.Core.cvendModel
+@{
+}
+<h2> Kode Vendor</h2>
+@(Html.DevExtreme().DataGrid<DID.Entities.Vendor>()
+        .ID("grVendor")
+        .ShowBorders(true)
+        .ShowColumnLines(true)
+        .ShowRowLines(true)
+        .FilterRow(filterRow => filterRow.Visible(true))
+        .Paging(p => p.PageSize(25))
+        .Pager(p => p
+            .ShowPageSizeSelector(true)
+            .AllowedPageSizes(new[] { 25, 50, 100 })
+            .ShowInfo(true)
+        )
+        .Editing(e => e.Mode(GridEditMode.Popup)
+            .AllowAdding(true)
+            .AllowDeleting(true)
+            .AllowUpdating(true)
+
+            .Popup(p => p
+                .Title("Kode Aplikasi")
+                .ShowTitle(true)
+                .Width(800)
+                .Height(450)
+                .Position(pos => pos
+                    .My(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .At(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .Of(new JS("window"))
+                )
+            )
+            .Form(f => f.Items(items =>
+            {
+
+                items.AddGroup()
+                    .ColCount(1)
+                    .ColSpan(1)
+                    .Items(groupItems =>
+                    {
+                        groupItems.AddSimpleFor(m => m.kodeVendor).Label(e => e.Text("No")).Editor(e => e.TextBox().ID("grVendor_kodeVendor").ReadOnly(true));
+                        groupItems.AddSimpleFor(m => m.namaVendor).Label(e => e.Text("Nama Vendor")).Editor(e => e.TextBox().MaxLength(40).Width(250).ID("grVendor_namaVendor"));
+                        groupItems.AddSimpleFor(m => m.alamatVendor).Label(e => e.Text("Alamat Vendor")).Editor(e => e.TextArea().MaxLength(200).Width(250).ID("grVendor_alamatVendor"));
+                        groupItems.AddSimpleFor(m => m.nomorTelepon).Label(e => e.Text("Nomor Telepon")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_nomorTelepon"));
+                        groupItems.AddSimpleFor(m => m.namaPIC).Label(e => e.Text("Nama PIC")).Editor(e => e.TextArea().MaxLength(100).Width(635).Height(100).ID("grVendor_namaPIC"));
+                        groupItems.AddSimpleFor(m => m.nomorHP).Label(e => e.Text("Nomor HP")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_nomorHP"));
+                        groupItems.AddSimpleFor(m => m.email).Label(e => e.Text("Email")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_email"));
+                        groupItems.AddSimpleFor(m => m.namaBank).Label(e => e.Text("Nama Bank")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_namaBank"));
+                        groupItems.AddSimpleFor(m => m.alamatBank).Label(e => e.Text("Alamat Bank")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_alamatBank"));
+                        groupItems.AddSimpleFor(m => m.namaRekening).Label(e => e.Text("Nama Rekening")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_namaRekening"));
+                        groupItems.AddSimpleFor(m => m.nomorRekening).Label(e => e.Text("Nomor Rekening")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_nomorRekening"));
+                        groupItems.AddSimpleFor(m => m.npwp).Label(e => e.Text("NPWP")).Editor(e => e.TextBox().MaxLength(50).Width(250).ID("grVendor_npwp"));
+
+                    });
+
+            }))
+        )
+        .Columns(columns =>
+        {
+            columns.AddFor(m => m.kodeVendor).Caption("No").Alignment(HorizontalAlignment.Left).Width(40);
+            columns.AddFor(m => m.namaVendor).Caption("Nama Vendor").Alignment(HorizontalAlignment.Left).Width(250);
+            columns.AddFor(m => m.alamatVendor).Caption("Alamat Vendor").Alignment(HorizontalAlignment.Left).Width(250);
+            columns.AddFor(m => m.nomorTelepon).Caption("Nomor Telepon").Alignment(HorizontalAlignment.Left).Width(250);
+            columns.AddFor(m => m.namaPIC).Caption("Nama PIC").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.nomorHP).Caption("Nomor HP").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.email).Caption("Email").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.namaBank).Caption("Nama Bank").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.alamatBank).Caption("ALamat Bank").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.namaRekening).Caption("Nama Rekening").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.nomorRekening).Caption("Nomor Rekening").Width(150).Alignment(HorizontalAlignment.Left);
+            columns.AddFor(m => m.npwp).Caption("NPWP").Width(150).Alignment(HorizontalAlignment.Left);
+
+        })
+        .DataSource(d => d.Mvc()
+            .Controller("Vendor")
+            .LoadAction("GetListToEdit")
+            .UpdateAction("Put")
+            .InsertAction("Post")
+            .DeleteAction("Delete")
+            .Key("kodeVendor")
+        )
+        .OnInitNewRow(@<text> function(e) { grVendor_OnInitNewRow(); } </text>)
+
+    )
+<script>
+        
+
+    function grVendor_OnInitNewRow() {
+        $("#grVendor").dxDataGrid({ popup: { title: "Insert Vendor" } });
+        $.ajax({
+            type: "GET",
+            url: "/api/core/cvend/maxkode",
+            success: function (data) {
+                var nextKode = data.kodeVendor;
+                if (nextKode === null) {
+                    nextKode = 0;
+                } else {
+                    nextKode = parseInt(nextKode) + 1;
+                }
+                console.log(nextKode);
+                setTimeout(function () {
+                    $("#grVendor_kodeVendor").dxTextBox({ value: nextKode });
+                }, 1000);
+            }
+        })
+    }
+</script>

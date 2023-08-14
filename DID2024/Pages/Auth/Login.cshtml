@@ -1,0 +1,53 @@
+﻿@page
+@model DID.Page.LoginModel
+@{
+    Layout = "_layout";
+    List<DID.Entities.KodeAplikasi> listcompany = await DID.DataLayers.KodeAplikasi.GetCompanyList();
+}
+    <h1>Login</h1>
+    <form method="post" class="dx-form">
+        <div class="dx-fieldset">
+            <div class="dx-field">
+                <div class="dx-field-label">Username</div>
+                <div class="dx-field-value">
+                    <input type="text" name="Username" class="dx-texteditor-input" />
+                </div>
+            </div>
+
+            <div class="dx-field">
+                <div class="dx-field-label">Password</div>
+                <div class="dx-field-value">
+                    <input type="password" name="Password" class="dx-texteditor-input" />
+                </div>
+            </div>
+            <div class="dx-field">
+                <div class="dx-field-label">Company</div>
+                <div class="dx-field-value">
+                    <select class="form-control" id="dropdown" name="company">
+                        <option value="">Select...</option>
+                        @foreach (var item in listcompany)
+                        {
+                            <option value="@item.childCode">@item.keterangan</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            
+        </div>
+        <div class="dx-fieldset">
+            <div class="dx-field">
+                <div class="dx-field-value">
+                    <button type="submit" class="dx-button dx-button-normal">Login</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+
+<script>
+    $(document).ready(function () {
+        var selectedValue = $("#dropdown").val();
+
+        console.log(selectedValue);
+    })
+</script>

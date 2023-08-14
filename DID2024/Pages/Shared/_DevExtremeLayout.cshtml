@@ -1,0 +1,129 @@
+@using System.Security.Claims
+
+@{
+    var company = @User.FindFirstValue(CustomClaim.CustomClaimTypes.company);
+
+    await DID.DataLayers.Barang.ListIntoMemoryByCompany(company);
+}
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dashboard</title>
+    <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+
+    <link href="~/css/devextreme/bootstrap.css" rel="stylesheet" />
+
+    <link href="~/css/devextreme/dx.common.css" rel="stylesheet" />
+
+    <link href="~/css/devextreme/dx.light.css" rel="stylesheet" />
+
+    <script src="~/js/devextreme/jquery.js"></script>
+    <script src="~/js/devextreme/bootstrap.js"></script>
+
+    <script src="~/js/devextreme/dx.all.js"></script>
+
+    <script src="~/js/devextreme/aspnet/dx.aspnet.mvc.js"></script>
+    <script src="~/js/devextreme/aspnet/dx.aspnet.data.js"></script>
+    <link href="~/css/site.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="app-root">
+        <div class="layout-header">
+            @(Html.DevExtreme().Toolbar()
+                .Items(items =>
+                {
+                    items.Add()
+                        .Html("<div>Dinamix Network</div>")
+                        .Location(ToolbarItemLocation.Before)
+                        .CssClass("header-tittle");
+
+                    items.Add()
+                        .Widget(w => w
+                            .Button()
+                            .Icon("menu")
+                            .OnClick("openButton_click")
+                        )
+                        .CssClass("menu-icon")
+                        .Location(ToolbarItemLocation.Before);
+
+                    items.Add()
+                        .Widget(w => w
+                            .DropDownButton()
+                            .Icon("user")
+                            .DisplayExpr("text") // Tambahkan properti displayExpr di sini
+
+                            .DropDownOptions(options => options.Width(230))
+                            .Items(items =>
+                            {
+                                items.Add().Text(User.Identity.Name).Icon("user");
+                                items.Add().Text("logout").Icon("back").OnClick("function() { window.location.href = '" + Url.Page("/auth/logout") + "'; }");
+                            })
+                        )
+                        .Location(ToolbarItemLocation.After);
+                })
+            )
+
+        </div>
+        <div class="layout-body">
+            @(Html.DevExtreme().Drawer()
+                .ID("drawer")
+                .OpenedStateMode(DrawerOpenedStateMode.Shrink)
+                .Opened(false)
+                .Position(DrawerPosition.Left)
+                .RevealMode(DrawerRevealMode.Slide)
+                .CloseOnOutsideClick(true)
+                .Content(
+                @<text>
+                     <div class="content">
+                         <div class="card">
+
+                            @RenderBody()
+                         </div>
+                     </div>
+                </text>)
+                 .Template(
+                    @<text>
+                        <div class="menu-container">
+                            <div class="header-sidebar">
+
+                                <img src="~/images/7309681.jpg" />
+                                <h2> @User.Identity.Name </h2>
+                            </div>
+                            @(Html.DevExtreme().TreeView()
+                                 .Items(items =>
+                                 {
+                                     items.Add().Text("Akuntansi").Icon("menu1");
+                                     items.Add().Text("Purchasing").Icon("menu2");
+                                 })
+                            )
+                        </div>
+                    </text>)
+                )
+
+        </div>
+    </div>
+    <script>
+        
+        // Fungsi untuk meng-handle klik pada tombol menu
+        function openButton_click() {
+            var drawer = $("#drawer").dxDrawer("instance");
+            drawer.toggle();
+        }
+        function userItemClick(e) {
+            var selectedItemText = e.itemData.text;
+            alert("Selected item: " + selectedItemText);
+        }
+
+    </script>
+
+</body>
+
+</html>

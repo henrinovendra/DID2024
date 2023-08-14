@@ -1,0 +1,261 @@
+﻿@page
+@model DID2024.Pages.Transaksi.pembelianModel
+@using System.Security.Claims
+
+@{
+    var company = @User.FindFirstValue(CustomClaim.CustomClaimTypes.company);
+    await DID.DataLayers.Barang.ListIntoMemoryByCompany(company);
+}
+@{
+    await DID.DataLayers.Vendor.ListIntoMemory();
+    await DID.DataLayers.Barang.ListIntoMemoryByCompany(company);
+}
+
+@(Html.DevExtreme().DataGrid<DID.Entities.TransaksiPembelianInternal>()
+   .ID("grPembelian")
+   .ShowBorders(true)
+    .ShowColumnLines(true)
+    .ShowRowLines(true)
+    .FilterRow(filterRow => filterRow.Visible(true))
+    .Paging(p => p.PageSize(25))
+
+    .Pager(p => p
+        .ShowPageSizeSelector(true)
+        .AllowedPageSizes(new[] { 25, 50, 100 })
+        .ShowInfo(true)
+    )
+     .Scrolling(scrolling => scrolling
+        .Mode(GridScrollingMode.Standard) // 
+    )
+    .Editing(e => e.Mode(GridEditMode.Popup)
+        .AllowAdding(true)
+        .AllowDeleting(true)
+        .AllowUpdating(true)
+
+        .Popup(p => p
+            .Title("Transaksi Pembelian")
+            .ShowTitle(true)
+            .Width(800)
+            .Height(600)
+            .Position(pos => pos
+                .My(HorizontalAlignment.Center, VerticalAlignment.Top)
+                .At(HorizontalAlignment.Center, VerticalAlignment.Top)
+                .Of(new JS("window"))
+            )
+        )
+        .Form(f=> f.Items(items => {
+            items.AddGroup()
+            .ColCount(2)
+            .ColSpan(2)
+                .Items(groupItems =>
+                {
+                    groupItems.AddSimpleFor(m => m.transaksiId).Label(e => e.Text("Id Transaksi")).Editor(e => e.TextBox().MaxLength(40).ID("grPembelian_transaksiID"));
+                    groupItems.AddSimpleFor(m => m.nomorSO).Label(e => e.Text("Nomor SO")).Editor(e => e.TextBox().MaxLength(40).ID("grPembelian_nomorSO"));
+                    groupItems.AddSimpleFor(m => m.nomorPO).Label(e => e.Text("Nomor PO")).Editor(e => e.TextBox().MaxLength(40).ID("grPembelian_nomorPO"));
+                    groupItems.AddSimpleFor(m => m.nomorPR).Label(e => e.Text("Nomor PR")).Editor(e => e.TextBox().MaxLength(40).ID("grPembelian_nomorPR"));
+                    groupItems.AddSimpleFor(m => m.nomorCOA).Label(e => e.Text("Nomor COA")).Editor(e => e.TextBox().MaxLength(40).ID("grPembelian_nomorCOA"));
+                    groupItems.AddSimpleFor(m => m.namaBarang).Label(e => e.Text("Nama Barang")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarBarangByCompany).ID("grPembelian_namaBarang").OnSelectionChanged("updateDropdownX"));
+                    groupItems.AddSimpleFor(m => m.company).Label(e => e.Text("Company")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarCompany).ValueExpr("childCode").DisplayExpr("keterangan").MaxLength(40).ID("grPembelian_company"));
+                    groupItems.AddSimpleFor(m => m.satuan).Label(e => e.Text("satuan")).Editor(e => e.TextBox().MaxLength(40));
+
+                    groupItems.AddSimpleFor(m => m.quantity).Label(e => e.Text("Quantity")).Editor(e => e.NumberBox().ID("grPembelian_quantity").Format("###,###.00").OnChange("calculateTotalHarga"));
+                    groupItems.AddSimpleFor(m => m.hargaSatuan).Label(e => e.Text("Harga Satuan")).Editor(e => e.NumberBox().ID("grPembelian_hargaSatuan").Format("###,###.00").OnChange("calculateTotalHarga"));
+                    groupItems.AddSimpleFor(m => m.nominalMaterial).Label(e => e.Text("Nominal Material")).Editor(e => e.NumberBox().ID("grPembelian_nominalMaterial").Format("###,###.00").ReadOnly(true).OnChange("calculateTotalHarga"));
+                    groupItems.AddSimpleFor(m => m.nominalService).Label(e=>e.Text("Nominal Service")).Editor(e => e.NumberBox().ID("grPembelian_nominalService").Format("###,###.00").OnChange("calculateTotalHarga"));
+                    groupItems.AddSimpleFor(m => m.biayaLain).Label(e => e.Text("Biaya Lain")).Editor(e => e.NumberBox().ID("grPembelian_biayaLain").Format("###,###.00").OnChange("calculateTotalHarga")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.discount).Label(e => e.Text("DisCount")).Editor(e => e.NumberBox().ID("grPembelian_discount").Format("###,###.00").OnChange("calculateTotalHarga")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.ppn).Label(e => e.Text("ppn")).Editor(e => e.NumberBox().ID("grPembelian_ppn").Format("###,###.00").OnChange("calculateTotalHarga")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.totalHarga).Label(e => e.Text("Total Harga")).Editor(e => e.NumberBox().Format("###,###.00").ReadOnly(true).ID("grPembelian_totalHarga"));
+
+                    groupItems.AddSimpleFor(m => m.keterangan).Label(e => e.Text("Keterangan")).Editor(e => e.TextBox());
+                    groupItems.AddSimpleFor(m => m.namaXBarang).Label(e => e.Text("Nama EX Barang")).Editor(e => e.SelectBox().ID("grPembelian_namaXBarang").ReadOnly(true));
+                    groupItems.AddSimpleFor(m => m.nomorXPO).Label(e => e.Text("Nomor Ex PO")).Editor(e => e.TextBox().ID("grPembelian_nomorXPO"));
+                    groupItems.AddSimpleFor(m => m.idVendor).Label(e => e.Text("Nama Vendor")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarVendor).ValueExpr("kodeVendor").DisplayExpr("namaVendor").ID("grPembelian_namaVendor"));
+                    groupItems.AddSimpleFor(m => m.nomorSJ).Label(e => e.Text("Nomor SJ")).Editor(e => e.TextBox().ID("grPembelian_nomorSJ"));
+                    groupItems.AddSimpleFor(m => m.nomorReference).Label(e => e.Text("Nomor Reference")).Editor(e => e.TextBox().ID("grPembelian_nomorReference"));
+                    groupItems.AddSimpleFor(m => m.nomorInvoice).Label(e => e.Text("Nomor Invoice")).Editor(e => e.TextBox().ID("grPembelian_nomorInvoice"));
+                    groupItems.AddSimpleFor(m => m.fakturPajak).Label(e => e.Text("Faktur Pajak")).Editor(e => e.TextBox().ID("grPembelian_fakturPajak"));
+                    groupItems.AddSimpleFor(m => m.tanggalInvoice).Label(e => e.Text("Tanggal Invoice")).Editor(e => e.DateBox().ID("grPembelian_tanggalInvoice").DisplayFormat("yyyy-MM-dd HH:mm:ss")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.tanggalJatuhTempo).Label(e => e.Text("Tanggal Jatuh Tempo")).Editor(e => e.DateBox().ID("grPembelian_tanggalJatuhTempo").DisplayFormat("yyyy-MM-dd HH:mm:ss")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.tanggalPO).Label(e => e.Text("Tanggal PO")).Editor(e => e.DateBox().ID("grPembelian_tanggalPO").DisplayFormat("yyyy-MM-dd HH:mm:ss")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.tanggalPurchase).Label(e => e.Text("Tanggal Pembelian")).Editor(e => e.DateBox().ID("grPembelian_tanggalPO").DisplayFormat("yyyy-MM-dd HH:mm:ss")).IsRequired(false);
+                    groupItems.AddSimpleFor(m => m.tanggalDelivery).Label(e => e.Text("Tanggal Delivery")).Editor(e => e.DateBox().ID("grPembelian_tanggalPO").DisplayFormat("yyyy-MM-dd HH:mm:ss")).IsRequired(false);
+
+
+                });  
+        }))
+   )
+   .Columns(columns =>
+   {
+       columns.AddFor(m => m.transaksiId).Caption("ID Transaksi").Fixed(true).Alignment(HorizontalAlignment.Left).Width(150);
+       columns.AddFor(m => m.nomorSO).Caption("Nomor SO").Fixed(true).Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.nomorPO).Caption("Nomor PO").Fixed(true).Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.nomorPR).Caption("Nomor PR").Fixed(true).Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.nomorCOA).Caption("Nomor COA").Fixed(true).Alignment(HorizontalAlignment.Left).Width(100);
+
+       columns.AddFor(m => m.namaBarang).Caption("Nama Barang").Fixed(true).Alignment(HorizontalAlignment.Left).Width(300).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarBarangByCompany).DisplayExpr("keterangan").ValueExpr("typeBarang"));
+       columns.AddFor(m => m.namaXBarang).Caption("Nama X Barang").Alignment(HorizontalAlignment.Left).Width(300).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarBarangByCompany).DisplayExpr("xnamaBarang").ValueExpr("typeBarang"));
+       columns.AddFor(m => m.company).Caption("Company").Alignment(HorizontalAlignment.Left).Width(150).Visible(false);
+       columns.AddFor(m => m.quantity).Caption("Quantity").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Format("###,###.00").Width(100);
+       columns.AddFor(m => m.hargaSatuan).Caption("Harga Satuan").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100).Format("###,###.00");
+       columns.AddFor(m => m.nominalMaterial).Caption("Nominal Material").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100).Format("###,###.00");
+       columns.AddFor(m => m.nominalService).Caption("Nominal Service").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(150).Format("###,###.00");
+       columns.AddFor(m => m.biayaLain).Caption("Biaya Lain Lain").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100).Format("###,###.00");
+       columns.AddFor(m => m.discount).Caption("Discount").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100);
+       columns.AddFor(m => m.ppn).Caption("PPN").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100);
+       columns.AddFor(m => m.totalHarga).Caption("Total Harga").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.Number).Width(100);
+       columns.AddFor(m=> m.nomorXPO).Caption("Nomor Ex PO").Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.idVendor).Caption("Nama Vendor").Alignment(HorizontalAlignment.Left).Width(300).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarVendor).DisplayExpr("namaVendor").ValueExpr("kodeVendor"));
+       columns.AddFor(m => m.nomorSJ).Caption("Nomor SJ").Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.nomorReference).Caption("Nomor Reference").Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.nomorInvoice).Caption("Nomor Invoice").Alignment(HorizontalAlignment.Left).Width(100);
+       columns.AddFor(m => m.fakturPajak).Caption("Faktur Pajak").Alignment(HorizontalAlignment.Left).Width(100);
+
+       columns.AddFor(m => m.tanggalInvoice).Caption("Tanggal Invoice").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.DateTime).Width(250).Format("yyyy-MM-dd HH:mm:ss");
+       columns.AddFor(m => m.tanggalJatuhTempo).Caption("Jatuh Tempo").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.DateTime).Width(250).Format("yyyy-MM-dd HH:mm:ss");
+       columns.AddFor(m => m.tanggalPO).Caption("Tanggal PO").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.DateTime).Width(250).Format("yyyy-MM-dd HH:mm:ss");
+       columns.AddFor(m => m.tanggalPurchase).Caption("Tanggal Purchase").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.DateTime).Width(250).Format("yyyy-MM-dd HH:mm:ss");
+       columns.AddFor(m => m.tanggalDelivery).Caption("Tanggal Delivery").Alignment(HorizontalAlignment.Left).DataType(GridColumnDataType.DateTime).Width(250).Format("yyyy-MM-dd HH:mm:ss");
+   })
+   .DataSource(d=>d.Mvc()
+        .Controller("TransaksiPembelian")
+        .LoadAction("GetListToEdit")
+        .UpdateAction("Put")
+        .InsertAction("Post")
+        .DeleteAction("Delete")
+        .Key("transaksiId")
+   )
+   .OnInitNewRow(@<text> function(e) { grCoKoBarang_OnInitNewRow(e); } </text>)
+
+)
+<script>
+    // Set Kolom Tanggal
+    $("#grPembelian").dxDataGrid({
+        onCellPrepared: function (e) {
+            var dataFieldsToCheck = ["tanggalInvoice", "tanggalJatuhTempo", "tanggalPO", "tanggalPurchase", "tanggalDelivery"];
+            if (dataFieldsToCheck.includes(e.column.dataField)) {
+                var cellValue = new Date(e.value); // Mengubah string menjadi objek tanggal
+                var targetDate = new Date("2000-01-01T00:00:00"); // Mengubah string menjadi objek tanggal
+                if (cellValue.getTime() === targetDate.getTime()) {
+                    e.cellElement.text("-");
+                }
+
+            }
+        }
+    });
+    //End Set Kolom Tanggal
+
+    //function set otomatis namaExBarang
+    function updateDropdownX() {
+        var namaBarangValue = $("#grPembelian_namaBarang").dxSelectBox("instance").option("value");
+        console.log(namaBarangValue);
+
+        // Get the data for "namaXBarang" from the API
+        $.ajax({
+            type: "GET",
+            url: "/api/core/cgood/barangbycompany",
+            data: { iCompany: '@company' },
+            success: function (data) {
+                // Find the corresponding data for "namaXBarang" based on the selected value of "namaBarang"
+                var namaXBarangData = data.find(function (item) {
+                    return item.typeBarang === namaBarangValue;
+                });
+
+                // Set the selected value and display text for "namaXBarang" form
+                $("#grPembelian_namaXBarang").dxSelectBox("instance").option("value", namaXBarangData.typeBarang);
+                $("#grPembelian_namaXBarang").dxSelectBox("instance").option("displayValue", namaXBarangData.xnamaBarang);
+            },
+            error: function () {
+                console.error("Gagal mendapatkan data untuk namaXBarang.");
+            }
+        });
+    }
+    //End Function Set Otomatis namaExBarang
+
+   // Function CalculateTotalHarga
+    function calculateTotalHarga() {
+        var quantity = $("#grPembelian_quantity").dxNumberBox("instance").option("value");
+        var hargaSatuan = $("#grPembelian_hargaSatuan").dxNumberBox("instance").option("value");
+        var nominalMaterial = (quantity * hargaSatuan);
+        $("#grPembelian_nominalMaterial").dxNumberBox({ value: nominalMaterial });
+        var nominalMaterial = $("#grPembelian_nominalMaterial").dxNumberBox("instance").option("value");
+        var nominalService = $("#grPembelian_nominalService").dxNumberBox("instance").option("value");
+        var biayaLain = $("#grPembelian_biayaLain").dxNumberBox("instance").option("value");
+        var discount = $("#grPembelian_discount").dxNumberBox("instance").option("value");
+        var ppn = $("#grPembelian_ppn").dxNumberBox("instance").option("value");
+
+        var totalHarga = nominalMaterial + nominalService + biayaLain - discount + ppn;
+        $("#grPembelian_totalHarga").dxNumberBox({ value: totalHarga });
+    }
+    // End Function CalculateTotalHarga
+
+    var today = new Date();
+    var year = today.getFullYear().toString().slice(-2);
+    var month = (today.getMonth() + 1).toString().padStart(2, '0');
+    var day = today.getDate().toString().padStart(2, '0');
+    var formattedDate = year + month + day;
+
+     // function Input
+    function grCoKoBarang_OnInitNewRow() {
+     $("#grPembelian").dxDataGrid({ popup: { title: "Transaksi Pembelian" } });
+
+        $.ajax({
+        type: "GET",
+        url: "/api/core/cgood/barangbycompany",
+        data: { iCompany: '@company' },
+            success: function (data) {
+                setTimeout(function () {
+                $("#grPembelian_namaBarang").dxSelectBox({
+                    dataSource: data, // Gunakan data dari API sebagai sumber data
+                    displayExpr: "keterangan", // Properti yang akan ditampilkan dalam dropdown list
+                    valueExpr: "typeBarang",
+                });
+                }, 1000);
+             }});
+        $.ajax({
+            type: "GET",
+            url: "/api/transaksi/pembelian/maxkode",
+            data: { iCompany: '@company' },
+            success: function (data) {
+                var lastTransaksiId = data.transaksiId;
+                var kode;
+
+                if (lastTransaksiId) {
+                    var lastChar = parseInt(lastTransaksiId.substring(lastTransaksiId.length - 3));
+                    var transaksiId = lastTransaksiId.slice(0, 6);
+
+                    if (formattedDate === transaksiId) {
+                        var incrementedNumber = (lastChar + 1).toString().padStart(3, '0');
+                        kode = formattedDate + '@company'.toUpperCase() + incrementedNumber;
+                    } else {
+                        kode = formattedDate + '@company'.toUpperCase() + '001';
+                    }``
+                } else {
+                    kode = formattedDate + '@company'.toUpperCase() + '001';
+              /*  //*/}
+
+                setTimeout(function () {
+                    $("#grPembelian_transaksiID").dxTextBox({ value: kode, readOnly: true });
+                    $("#grPembelian_company").dxSelectBox({ value: '@company', readOnly: true }); // Mengisi otomatis "Company"
+                        
+
+                }, 1000);
+            },
+            error: function () {
+                console.error("Failed to get max kode.");
+            }
+        });
+        $.ajax({
+            type: "GET",
+            url: "/api/core/ccode/company",
+            data: { iCompany: '@company' },
+            success: function (data) {
+                console.log(data.childCode);
+                var namaCompany = data.childCode;
+                $("#grPembelian_company").dxSelectBox("instance").option("value", '@company');
+                $("#grPembelian_company").dxSelectBox("instance").option("displayValue", namaCompany.keterangan);
+            }
+        })
+    }
+    // End Function input
+</script>

@@ -1,0 +1,72 @@
+﻿@page
+@model DID.Page.Core.codeModel
+
+@{
+
+    await DID.DataLayers.KodeAplikasi.ListIntoMemory();
+}
+
+
+
+<h2 class="content-block">Kode Aplikasi</h2>
+@(Html.DevExtreme().DataGrid<DID.Entities.KodeAplikasi>()
+    .ID("grCoKodeAplikasi")
+    .ShowBorders(true)
+    .ShowColumnLines(true)
+    .ShowRowLines(true)
+    .RowAlternationEnabled(true)
+    .Paging(p => p.PageSize(25))
+    .Pager(p => p
+        .ShowPageSizeSelector(true)
+        .AllowedPageSizes(new[] { 25, 50, 100 })
+        .ShowInfo(true)
+    )
+    .Editing(e => e.Mode(GridEditMode.Popup)
+        .AllowUpdating(true)
+        .AllowAdding(true)
+        .AllowDeleting(true)
+        .Popup(p => p
+            .Title("Kode Aplikasi")
+            .ShowTitle(true)
+            .Width(600)
+            .Height(425)
+            .Position(pos => pos
+                .My(HorizontalAlignment.Center, VerticalAlignment.Top)
+                .At(HorizontalAlignment.Center, VerticalAlignment.Top)
+                .Of(new JS("window"))
+            )
+        )
+        .Form(f => f.Items(items =>
+        {
+            items.AddGroup()
+                .ColCount(1)
+                .ColSpan(2)
+                .Items(groupItems =>
+                {
+                    groupItems.AddSimpleFor(m => m.headCode).Label(e => e.Text("HeadCode")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarKodeAplikasiType).DisplayExpr("keterangan").ValueExpr("headCode").Width(100));
+                    groupItems.AddSimpleFor(m => m.childCode).Label(e => e.Text("ChildCode")).Editor(e => e.TextBox().MaxLength(40).Width(100));
+                    groupItems.AddSimpleFor(m => m.keterangan).Label(e => e.Text("keterangan")).Editor(e => e.TextBox().MaxLength(40).Width(350));
+                });
+        }))
+    )
+    .Columns(columns =>
+    {
+        columns.AddFor(m => m.headCode).Caption("HeadCode").Alignment(HorizontalAlignment.Center).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarKodeAplikasiType).DisplayExpr("keterangan").ValueExpr("headCode")).GroupIndex(0);
+        columns.AddFor(m => m.childCode).Caption("childCode").Alignment(HorizontalAlignment.Right).Width(100);
+        columns.AddFor(m => m.keterangan).Caption("keterangan").MinWidth(320);
+    })
+    .DataSource(d => d.Mvc()
+        .Controller("KodeAplikasi")
+            .LoadAction("GetListToEdit")
+            .UpdateAction("Put")
+            .InsertAction("Post")
+            .DeleteAction("Delete")
+            .Key("keyID")
+    )
+    .OnInitNewRow(@<text> function(e) { grCoKodeAplikasi_OnInitNewRow(); } </text>)
+)
+  <script>
+      function grCoKodeAplikasi_OnInitNewRow() {
+          $("#grCoKodeAplikasi").dxDataGrid({ popup: { title: "Penambahan Kode Aplikasi" } });
+      }
+  </script>

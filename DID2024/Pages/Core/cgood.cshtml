@@ -1,0 +1,220 @@
+﻿@page
+@model DIDProject2023.Pages.Core.cgoodModel
+@using System.Security.Claims
+
+@{
+    var username = User.Identity.Name;
+    var role = User.IsInRole("adm") ? "admin" : "user";
+    var company = @User.FindFirstValue(CustomClaim.CustomClaimTypes.company);
+    await DID.DataLayers.Vendor.ListIntoMemory();
+    await DID.DataLayers.Barang.ListIntoMemory();
+    await DID.DataLayers.Barang.ListIntoMemoryByCompany(company);
+}
+
+@(Html.DevExtreme().TabPanel()
+    .Items(items =>
+    {
+        items.Add().Text("Tabel Cgood").Title("Data").Template(new TemplateName("data-barang")) ;
+        items.Add().Text("HeadCode Cgood").Title("HeadCode").Template(new TemplateName("data-head"));
+    })
+)
+@using (Html.DevExtreme().NamedTemplate("data-head"))
+{
+    @(Html.DevExtreme().DataGrid<DID.Entities.Barang>()
+        .ID("HeadCode")
+        .ShowBorders(true)
+        .ShowColumnLines(true)
+        .ShowRowLines(true)
+        .FilterRow(filterRow => filterRow.Visible(true))
+        .Paging(p => p.PageSize(25))
+        .Pager(p => p
+            .ShowPageSizeSelector(true)
+            .AllowedPageSizes(new[] { 25, 50, 100 })
+            .ShowInfo(true)
+        )
+        .Editing(e => e.Mode(GridEditMode.Popup)
+            .AllowAdding(true)
+            .AllowDeleting(role == "admin")
+            .AllowUpdating(role == "admin")
+
+            .Popup(p => p
+                .Title("Kode Aplikasi")
+                .ShowTitle(true)
+                .Width(600)
+                .Height(425)
+                .Position(pos => pos
+                    .My(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .At(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .Of(new JS("window"))
+                )
+            )
+            .Form(f => f.Items(items =>
+            {
+                items.AddGroup()
+                    .ColCount(1)
+                    .ColSpan(2)
+                    .Items(groupItems =>
+                    {
+                        groupItems.AddSimpleFor(m => m.jenisBarang).Label(e => e.Text("Jenis Barang")).Editor(e => e.TextBox().MaxLength(40).ID("grHeadBarang_JenisBarang"));
+                        groupItems.AddSimpleFor(m => m.keterangan).Label(e => e.Text("Keterangan")).Editor(e => e.TextBox().MaxLength(40).Width(350).ID("grHeadBarang_Keterangan"));
+
+                    });
+            }))
+        )
+        .Columns(columns =>
+        {
+            columns.AddFor(m => m.jenisBarang).Caption("Jenis Barang").Alignment(HorizontalAlignment.Center).Width(120);
+            columns.AddFor(m => m.keterangan).Caption("keterangan").MinWidth(300);
+
+
+        })
+        .DataSource(d => d.Mvc()
+            .Controller("Barang")
+            .LoadAction("GetListHeadCode")
+            .InsertAction("PostHeadCode")
+            .Key("keyID")
+        )
+    )
+}
+@using (Html.DevExtreme().NamedTemplate("data-barang"))
+{
+    <h4> Stock Barang</h4>
+
+    @* Tabel Barang*@
+    @(Html.DevExtreme().DataGrid<DID.Entities.Barang>()
+        .ID("grBarang")
+        .ShowBorders(true)
+        .ShowColumnLines(true)
+        .ShowRowLines(true)
+        .FilterRow(filterRow => filterRow.Visible(true))
+        .Paging(p => p.PageSize(25))
+        .Pager(p => p
+            .ShowPageSizeSelector(true)
+            .AllowedPageSizes(new[] { 25, 50, 100 })
+            .ShowInfo(true)
+        )
+        .Editing(e => e.Mode(GridEditMode.Popup)
+            .AllowAdding(true)
+            .AllowDeleting(role == "admin")
+            .AllowUpdating(role == "admin")
+
+            .Popup(p => p
+                .Title("Kode Aplikasi")
+                .ShowTitle(true)
+                .Width(800)
+                .Height(450)
+                .Position(pos => pos
+                    .My(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .At(HorizontalAlignment.Center, VerticalAlignment.Top)
+                    .Of(new JS("window"))
+                )
+            )
+            .Form(f => f.Items(items =>
+            {
+
+                items.AddGroup()
+                    .ColCount(2)
+                    .ColSpan(2)
+                    .Items(groupItems =>
+                    {
+                        groupItems.AddSimpleFor(m => m.jenisBarang).Label(e => e.Text("Jenis Barang")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarJenisBarang).DisplayExpr("keterangan").ValueExpr("jenisBarang").Width(250).ID("grBarang_JenisBarang"));
+                        groupItems.AddSimpleFor(m => m.typeBarang).Label(e => e.Text("Type Barang")).Editor(e => e.TextBox().MaxLength(40).Width(250).ID("grBarang_TypeBarang"));
+                        groupItems.AddSimpleFor(m => m.keterangan).Label(e => e.Text("Nama Barang")).Editor(e => e.TextArea().MaxLength(100).Width(635).Height(100).ID("grBarang_Keterangan"));
+
+                    });
+                items.AddGroup()
+                    .ColCount(2)
+                    .ColSpan(2)
+                    .Items(groupItems =>
+                    {
+                        groupItems.AddSimpleFor(m => m.xnamaBarang).Label(e => e.Text("Nama Ex Barang")).Editor(e => e.TextArea().MaxLength(100).Width(635).Height(100).ID("grBarang_XBarang"));
+
+                    });
+                items.AddGroup()
+                   .ColCount(2)
+                   .ColSpan(2)
+                   .Items(groupItems =>
+                   {
+                       groupItems.AddSimpleFor(m => m.satuan).Label(e => e.Text("Satuan")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarSatuan).DisplayExpr("keterangan").ValueExpr("childCode").MaxLength(40).Width(250).ID("grBarang_Satuan"));
+                       groupItems.AddSimpleFor(m => m.company).Label(e => e.Text("Company")).Editor(e => e.SelectBox().DataSource(DID.AppMemory.DaftarCompany).DisplayExpr("keterangan").ValueExpr("childCode").Width(250).ID("grBarang_Company"));
+                       groupItems.AddSimpleFor(m => m.quantity).Label(e => e.Text("Quantity")).Editor(e => e.NumberBox().ShowSpinButtons(true).ID("grBarang_quantity").Width(600));
+                   });
+            }))
+        )
+        .Columns(columns =>
+        {
+            columns.AddFor(m => m.jenisBarang).Caption("Jenis Barang").Alignment(HorizontalAlignment.Center).MinWidth(120).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarJenisBarang).DisplayExpr("keterangan").ValueExpr("jenisBarang")).GroupIndex(0);
+            columns.AddFor(m => m.typeBarang).Caption("Code Barang").Alignment(HorizontalAlignment.Right).Width(120);
+            columns.AddFor(m => m.keterangan).Caption("Nama Barang").MinWidth(300);
+            columns.AddFor(m => m.xnamaBarang).Caption("Nama X Barang").MinWidth(300);
+            columns.AddFor(m => m.satuan).Caption("Satuan").Alignment(HorizontalAlignment.Center).Width(120).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarSatuan).DisplayExpr("keterangan").ValueExpr("childCode"));
+            columns.AddFor(m => m.quantity).Caption("Quantity").Alignment(HorizontalAlignment.Center).DataType(GridColumnDataType.Number).Width(100);
+            columns.AddFor(m => m.company).Caption("Company").Alignment(HorizontalAlignment.Center).Width(250).Lookup(lookup => lookup.DataSource(DID.AppMemory.DaftarCompany).DisplayExpr("keterangan").ValueExpr("childCode"));
+
+        })
+        .DataSource(d => d.Mvc()
+            .Controller("Barang")
+            .LoadAction("GetListToEdit")
+            .UpdateAction("Put")
+            .InsertAction("Post")
+            .DeleteAction("Delete")
+            .Key("keyID")
+        )
+        .OnInitNewRow(@<text> function(e) { grCoKoBarang_OnInitNewRow(e); } </text>)
+    )
+    @*End Tabel Barang*@
+}
+
+<script>
+
+    function grCoKoBarang_OnInitNewRow() {
+        $("#grBarang").dxDataGrid({ popup: { title: "Penambahan Barang" } });
+
+        $.ajax({
+        type: "GET",
+        url: "/api/core/cgood/maxkode",
+        data: { iCompany: '@company' },
+        success: function (data) {
+            var maxKode = data.typeBarang;
+            console.log(maxKode);
+            if (typeof maxKode !== 'string' || maxKode.length < 4) {
+                maxKode = '@company.ToUpper()' + '001';
+            } else {
+                var lastChar = parseInt(maxKode.substr(3));
+                if (isNaN(lastChar)) {
+                    maxKode = '@company.ToUpper()' + '001';
+                } else {
+                    var incrementedNumber = (lastChar + 1).toString().padStart(3, '0');
+                    var prefix = maxKode.slice(0, 3);
+                    maxKode = prefix + incrementedNumber;
+                }
+            }
+
+            var nextTypeBarang = maxKode;
+
+            setTimeout(function () {
+                $("#grBarang_JenisBarang").dxSelectBox({ value: "JenisBarang" });
+                $("#grBarang_TypeBarang").dxTextBox({ value: nextTypeBarang });
+                $("#grBarang_Company").dxSelectBox({ value: "@company", readOnly: true });
+
+            }, 1000);
+        },
+        error: function () {
+            console.error("Failed to get max kode.");
+        }
+        });
+        $.ajax({
+            type: "GET",
+            url: "/api/core/ccode/company",
+            data: { iCompany: '@company' },
+            success: function (data) {
+                console.log(data);
+                var namaCompany = data.childCode;
+                $("#grBarang_Company").dxSelectBox("instance").option("value", '@company');
+                $("#grBarang_Company").dxSelectBox("instance").option("displayValue", namaCompany.keterangan);
+            }
+        })
+
+}
+
+</script>
